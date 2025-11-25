@@ -22,6 +22,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // 中间件配置
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json()); // 让 RESTful API 能解析 JSON
 app.use(methodOverride('_method'));
 
 // 会话配置
@@ -52,8 +53,8 @@ const Item = mongoose.model('Item', itemSchema);
 
 // 数据库连接
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/groupApp')
-  .then(() => console.log('✅ MongoDB connected'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
+  .then(() => console.log(' MongoDB connected'))
+  .catch(err => console.error(' MongoDB connection error:', err));
 
 // 登录页面
 app.get('/login', (req, res) => {
@@ -111,7 +112,7 @@ app.get('/logout', (req, res) => {
   });
 });
 
-// 首页 (显示所有数据，只读列表 + Create 按钮)
+// 首页 
 app.get('/crud', async (req, res) => {
   if (!req.session.userId) {
     return res.redirect('/login');
@@ -120,7 +121,6 @@ app.get('/crud', async (req, res) => {
   res.render('crud', { user: { username: req.session.username }, items });
 });
 
-
 // 根路径跳转
 app.get('/', (req, res) => {
   if (!req.session.userId) {
@@ -128,7 +128,6 @@ app.get('/', (req, res) => {
   }
   res.redirect('/crud');
 });
-
 
 // Create 页面
 app.get('/create', (req, res) => {
@@ -163,9 +162,41 @@ app.post('/delete/:id', async (req, res) => {
   res.redirect('/crud');
 });
 
+/* ----------------- RESTful API ----------------- */
+
+// Create (POST)
+app.post('/api/items', async (req, res) => {
+  const { title, description } = req.body;
+  const newItem = new Item({ title, description });
+  await newItem.save();
+  res.json({ message: 'Item created successfully', item: newItem });
+});
+
+// Read (GET)
+app.get('/api/items', async (req, res) => {
+  const items = await Item.find();
+  res.json(items);
+});
+
+// Update (PUT)
+app.put('/api/items/:id', async (req, res) => {
+  const { title, description } = req.body;
+  const updatedItem = await Item.findByIdAndUpdate(
+    req.params.id,
+    { title, description },
+    { new: true }
+  );
+  res.json({ message: 'Item updated successfully', item: updatedItem });
+});
+
+// Delete (DELETE)
+app.delete('/api/items/:id', async (req, res) => {
+  await Item.findByIdAndDelete(req.params.id);
+  res.json({ message: 'Item deleted successfully' });
+});
+
 /* ----------------- 启动服务器 ----------------- */
 const PORT = process.env.PORT || 8099;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(` Server running on http://localhost:${PORT}`);
 });
-
