@@ -15,7 +15,7 @@ A server-side todo application with login/logout, web CRUD and RESTful APIs.
 - .env.example: environment variables template.
 
 ## Cloud URL
-- https://your-deployment-url.example.com/
+- https://comp3810sef-group59.onrender.com
 
 ## How to run locally
 npm install
