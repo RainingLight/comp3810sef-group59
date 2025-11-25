@@ -164,18 +164,18 @@ app.post('/delete/:id', async (req, res) => {
 
 /* ----------------- RESTful API ----------------- */
 
+// Read (GET)
+app.get('/api/items', async (req, res) => {
+  const items = await Item.find();
+  res.json(items);
+});
+
 // Create (POST)
 app.post('/api/items', async (req, res) => {
   const { title, description } = req.body;
   const newItem = new Item({ title, description });
   await newItem.save();
   res.json({ message: 'Item created successfully', item: newItem });
-});
-
-// Read (GET)
-app.get('/api/items', async (req, res) => {
-  const items = await Item.find();
-  res.json(items);
 });
 
 // Update (PUT)
