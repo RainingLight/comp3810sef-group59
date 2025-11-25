@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Login</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Login</h2>
+        <form action="/login" method="POST">
+            <label for="username">Username:</label>
+            <input type="text" name="username" required>
+
+            <label for="password">Passworld:</label>
+            <input type="password" name="password" required>
+
+            <button type="submit">login</button>
+        </form>
+
+        <% if (typeof error !== 'undefined') { %>
+            <p class="error"><%= error %></p>
+        <% } %>
+
+        <p style="margin-top: 20px;">
+            Don’t have an account yet?
+            <a href="/register" style="color: #007bff; text-decoration: none; font-weight: bold;">Register</a>
+        </p>
+    </div>
+</body>
+</html>

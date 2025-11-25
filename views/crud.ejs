@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CRUD Home</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #007BFF;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      position: relative;
+    }
+    h1 {
+      margin: 0;
+    }
+    .logout {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background-color: #dc3545;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .logout:hover {
+      background-color: #c82333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 30px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .item {
+      border-bottom: 1px solid #ddd;
+      padding: 10px 0;
+    }
+    .item:last-child {
+      border-bottom: none;
+    }
+    .actions a, .actions form button {
+      margin-left: 10px;
+      color: #007BFF;
+      text-decoration: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    .actions a:hover, .actions form button:hover {
+      text-decoration: underline;
+    }
+    .btn {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #007BFF;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+    }
+    .btn:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Welcome <%= user.username %>！This is CRUD Home</h1>
+    <a href="/logout" class="logout">Logout</a>
+  </header>
+
+  <div class="container">
+    <h2>All Items</h2>
+    <% items.forEach(item => { %>
+      <div class="item">
+        <strong><%= item.title %></strong> - <%= item.description %>
+        <div class="actions">
+          <a href="/update/<%= item._id %>">Update</a>
+          <form action="/delete/<%= item._id %>" method="POST" style="display:inline;">
+            <button type="submit">Delete</button>
+          </form>
+        </div>
+      </div>
+    <% }) %>
+
+    <a href="/create" class="btn">Create New Item</a>
+  </div>
+</body>
+</html>
+

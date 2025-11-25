@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Read Items</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #007BFF;
+    }
+    .item-list {
+      max-width: 800px;
+      margin: 20px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .item {
+      border-bottom: 1px solid #ddd;
+      padding: 10px 0;
+    }
+    .item:last-child {
+      border-bottom: none;
+    }
+    .item strong {
+      color: #333;
+    }
+    .actions a {
+      margin-left: 10px;
+      color: #007BFF;
+      text-decoration: none;
+    }
+    .actions a:hover {
+      text-decoration: underline;
+    }
+    .btn {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #007BFF;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+    }
+    .btn:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h1>All Items</h1>
+  <div class="item-list">
+    <% items.forEach(item => { %>
+      <div class="item">
+        <strong><%= item.title %></strong> - <%= item.description %>
+        <div class="actions">
+          <a href="/update/<%= item._id %>">Update</a>
+          <a href="/delete/<%= item._id %>">Delete</a>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+  <div style="text-align:center;">
+    <a href="/create" class="btn">Create New Item</a>
+    <a href="/crud" class="btn">Back to Home</a>
+  </div>
+</body>
+</html>
+
