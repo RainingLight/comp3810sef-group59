@@ -6,9 +6,11 @@ const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const bodyParser = require('body-parser');
 const methodOverride = require('method-override');
+const dotenv = require('dotenv');
 const bcrypt = require('bcrypt');
 
-// 初始化Express应用
+dotenv.config();
+
 const app = express();
 
 // 设置视图引擎和视图目录
@@ -20,10 +22,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // 中间件配置
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+app.use(bodyParser.json()); // 让 RESTful API 能解析 JSON
 app.use(methodOverride('_method'));
 
-// 会话配置（必须优先初始化）
+// 会话配置
 app.use(session({
   secret: process.env.SESSION_SECRET || 'mySuperSecretKey123!',
   resave: false,
@@ -31,38 +33,33 @@ app.use(session({
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI || 'mongodb://localhost:27017/groupApp'
   }),
-  cookie: { maxAge: 1000 * 60 * 60 * 24 } // 1天有效期
+  cookie: { maxAge: 1000 * 60 * 60 * 24 } // 1 day
 }));
 
-// 数据库连接（必须优先于路由定义）
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/groupApp')
-  .then(() => console.log('✅ MongoDB connected successfully'))
-  .catch(err => {
-    console.error('🚨 MongoDB connection failed:', err.message);
-    process.exit(1); // 启动失败时退出进程
-  });
-
-// 用户模型（仅保留username和password）
+// 用户模型
 const userSchema = new mongoose.Schema({
-  username: { 
-    type: String, 
-    unique: true, // 数据库级别唯一约束
-    required: true 
-  },
-  password: { 
-    type: String, 
-    required: true 
-  }
+  username: String,
+  password: String
 });
 const User = mongoose.model('User', userSchema);
 
-// 数据模型
+// 数据模型 (CRUD 对象，例如 Todo 项目)
 const itemSchema = new mongoose.Schema({
   title: String,
   description: String,
   createdAt: { type: Date, default: Date.now }
 });
 const Item = mongoose.model('Item', itemSchema);
+
+// 数据库连接
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/groupApp')
+  .then(() => console.log(' MongoDB connected'))
+  .catch(err => console.error(' MongoDB connection error:', err));
+
+// 登录页面
+app.get('/login', (req, res) => {
+  res.render('login', { error: null });
+});
 
 // 注册页面
 app.get('/register', (req, res) => {
@@ -71,45 +68,22 @@ app.get('/register', (req, res) => {
 
 // 注册逻辑
 app.post('/register', async (req, res) => {
-  try {
-    const { username, password, confirmPassword } = req.body;
+  const { username, password, confirmPassword } = req.body;
 
-    // 验证密码一致性
-    if (password !== confirmPassword) {
-      return res.render('register', { 
-        error: 'Passwords do not match' 
-      });
-    }
-
-    // 检查用户名唯一性
-    const existingUser = await User.findOne({ username });
-    if (existingUser) {
-      return res.render('register', { 
-        error: 'Username already exists' 
-      });
-    }
-
-    // 密码哈希处理
-    const hashedPassword = await bcrypt.hash(password, 12); // 盐值成本提升至12
-    
-    // 创建并保存用户
-    const newUser = new User({ username, password: hashedPassword });
-    await newUser.save();
-
-    // 注册成功重定向
-    res.redirect('/login');
-    
-  } catch (error) {
-    console.error('🚨 Registration error:', error);
-    res.status(500).render('register', { 
-      error: 'Registration failed. Please try again later.' 
-    });
+  if (password !== confirmPassword) {
+    return res.render('register', { error: 'The passwords you entered do not match, please try again.' });
   }
-});
 
-// 登录页面
-app.get('/login', (req, res) => {
-  res.render('login', { error: null });
+  const existingUser = await User.findOne({ username });
+  if (existingUser) {
+    return res.render('register', { error: 'The username already exists, please choose a different username.' });
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const newUser = new User({ username, password: hashedPassword });
+  await newUser.save();
+
+  res.redirect('/login');
 });
 
 // 登录逻辑
@@ -118,56 +92,111 @@ app.post('/login', async (req, res) => {
   const user = await User.findOne({ username });
 
   if (!user) {
-    return res.render('login', { 
-      error: 'Invalid credentials' 
-    });
+    return res.render('login', { error: 'The username does not exist.' });
   }
 
-  const isPasswordValid = await bcrypt.compare(password, user.password);
-  if (!isPasswordValid) {
-    return res.render('login', { 
-      error: 'Invalid credentials' 
-    });
+  const match = await bcrypt.compare(password, user.password);
+  if (!match) {
+    return res.render('login', { error: 'Incorrect password, please try again.' });
   }
 
-  // 设置会话信息
   req.session.userId = user._id;
   req.session.username = user.username;
-  res.redirect('/crud');
+  res.redirect('/crud'); // 登录成功后跳转到首页
 });
 
-// 注销功能
+// 注销
 app.get('/logout', (req, res) => {
   req.session.destroy(() => {
     res.redirect('/login');
   });
 });
 
-// 受保护路由示例
-const authMiddleware = (req, res, next) => {
+// 首页 
+app.get('/crud', async (req, res) => {
   if (!req.session.userId) {
     return res.redirect('/login');
   }
-  next();
-};
-
-// CRUD功能路由
-app.get('/crud', authMiddleware, async (req, res) => {
   const items = await Item.find();
-  res.render('crud', { 
-    user: { username: req.session.username }, 
-    items 
-  });
+  res.render('crud', { user: { username: req.session.username }, items });
 });
 
-// RESTful API端点
-app.get('/api/items', authMiddleware, async (req, res) => {
+// 根路径跳转
+app.get('/', (req, res) => {
+  if (!req.session.userId) {
+    return res.redirect('/login');
+  }
+  res.redirect('/crud');
+});
+
+// Create 页面
+app.get('/create', (req, res) => {
+  if (!req.session.userId) return res.redirect('/login');
+  res.render('create');
+});
+
+app.post('/create', async (req, res) => {
+  const { title, description } = req.body;
+  const newItem = new Item({ title, description });
+  await newItem.save();
+  res.redirect('/crud');
+});
+
+// Update 页面
+app.get('/update/:id', async (req, res) => {
+  if (!req.session.userId) return res.redirect('/login');
+  const item = await Item.findById(req.params.id);
+  res.render('update', { item });
+});
+
+app.post('/update/:id', async (req, res) => {
+  const { title, description } = req.body;
+  await Item.findByIdAndUpdate(req.params.id, { title, description });
+  res.redirect('/crud');
+});
+
+// Delete 操作
+app.post('/delete/:id', async (req, res) => {
+  if (!req.session.userId) return res.redirect('/login');
+  await Item.findByIdAndDelete(req.params.id);
+  res.redirect('/crud');
+});
+
+/* ----------------- RESTful API ----------------- */
+
+// Read (GET)
+app.get('/api/items', async (req, res) => {
   const items = await Item.find();
   res.json(items);
 });
 
-// 启动服务器
+// Create (POST)
+app.post('/api/items', async (req, res) => {
+  const { title, description } = req.body;
+  const newItem = new Item({ title, description });
+  await newItem.save();
+  res.json({ message: 'Item created successfully', item: newItem });
+});
+
+// Update (PUT)
+app.put('/api/items/:id', async (req, res) => {
+  const { title, description } = req.body;
+  const updatedItem = await Item.findByIdAndUpdate(
+    req.params.id,
+    { title, description },
+    { new: true }
+  );
+  res.json({ message: 'Item updated successfully', item: updatedItem });
+});
+
+// Delete (DELETE)
+app.delete('/api/items/:id', async (req, res) => {
+  await Item.findByIdAndDelete(req.params.id);
+  res.json({ message: 'Item deleted successfully' });
+});
+
+/* ----------------- 启动服务器 ----------------- */
 const PORT = process.env.PORT || 8099;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(` Server running on http://localhost:${PORT}`);
 });
